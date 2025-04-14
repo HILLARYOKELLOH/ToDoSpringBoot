@@ -2,7 +2,11 @@ package com.jwt.restapi.service;
 
 import com.jwt.restapi.dto.TaskDto;
 import com.jwt.restapi.entity.Task;
+import com.jwt.restapi.entity.User;
 import com.jwt.restapi.repository.TaskRepository;
+import com.jwt.restapi.repository.UserRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,23 +17,46 @@ import java.util.List;
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final UserRepository userRepository;
 
-    public TaskService(TaskRepository repository) {
-        this.taskRepository = repository;
+    public TaskService(TaskRepository taskRepository, UserRepository userRepository) {
+        this.taskRepository = taskRepository;
+        this.userRepository = userRepository;
     }
 
-    // CREATE task with attachment
+    // Get tasks for a specific user
+    public List<Task> getTasksByUserId(Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            return taskRepository.findByUserId(user);
+        }
+        return List.of(); // Return empty list if user not found
+    }
+
+    // Create a task with optional attachment
     public Task createTask(TaskDto dto, MultipartFile attachmentFile) throws IOException {
         Task task = new Task();
+        Object user_object=SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        System.out.println( "Okello" + user_object);
+        //User user=userRepository.findByEmail
+        //User user=user_object.
+        String username;
+        if (user_object instanceof UserDetails) {
+            username = ((UserDetails) user_object).getUsername();
+        } else {
+            username = user_object.toString();
+        }
 
-        task.setUserId(dto.getUserId());
+        User user = userRepository.findByUsername(username);
+        //String email = user.getEmail();
+
+        task.setUserId(user);
         task.setTitle(dto.getTitle());
         task.setDescription(dto.getDescription());
         task.setDueDate(dto.getDueDate());
         task.setPriority(dto.getPriority());
         task.setStatus(dto.getStatus());
 
-        // Handle attachment if provided
         if (attachmentFile != null && !attachmentFile.isEmpty()) {
             task.setAttachmentName(attachmentFile.getOriginalFilename());
             task.setAttachmentType(attachmentFile.getContentType());
@@ -39,17 +66,17 @@ public class TaskService {
         return taskRepository.save(task);
     }
 
-    // GET all tasks
+    // Get all tasks
     public List<Task> getAllTasks() {
         return taskRepository.findAll();
     }
 
-    // GET task by id
+    // Get a task by ID
     public Task getTaskById(Long id) {
         return taskRepository.findById(id).orElse(null);
     }
 
-    // UPDATE task with new data and optional new attachment
+    // Update task with optional new attachment
     public Task updateTask(Long id, TaskDto dto, MultipartFile attachmentFile) throws IOException {
         Task existingTask = taskRepository.findById(id).orElse(null);
 
@@ -73,7 +100,7 @@ public class TaskService {
         return null; // Task not found
     }
 
-    // DELETE task
+    // Delete task by ID
     public void deleteTask(Long id) {
         taskRepository.deleteById(id);
     }

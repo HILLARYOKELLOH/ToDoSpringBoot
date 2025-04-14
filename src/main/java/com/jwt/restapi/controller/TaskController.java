@@ -23,7 +23,6 @@ public class TaskController {
     }
 
     // CREATE
-    // CREATE
     @PostMapping(value = "/create", consumes = {"multipart/form-data"})
     public ResponseEntity<?> createTask(
             @ModelAttribute TaskDto dto,
@@ -65,6 +64,14 @@ public class TaskController {
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
         return ResponseEntity.ok().build();
+    }
+
+    //GET ALL TASKS WITH PASSED USERID
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Task>> getTasksByUserId(@PathVariable Long userId) {
+        List<Task> tasks = taskService.getTasksByUserId(userId);
+        return ResponseEntity.ok(tasks);
     }
 
 }
